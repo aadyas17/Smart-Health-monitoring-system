@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Health Surveillance System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-blue: #0288D1;
+            --health-green: #2E7D32;
+            --alert-red: #D32F2F;
+            --alert-yellow: #FFC107;
+            --bg-light: #f4f6f9;
+        }
+        
+        body { 
+            background-color: var(--bg-light); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        /* Navigation */
+        .navbar { 
+            background-color: var(--primary-blue); 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        .navbar-brand, .nav-link { 
+            color: white !important; 
+        }
+        
+        /* Alert Ticker */
+        .alert-ticker {
+            background-color: var(--alert-red);
+            color: white;
+            padding: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        .alert-level-low {
+            background-color: var(--health-green);
+        }
+
+        /* Hover Effects for Cards (Role Selection) */
+        .hover-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            border: none;
+            height: 100%;
+        }
+        .hover-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        /* Role Selection Icons */
+        .role-icon {
+            width: 80px;
+            height: 80px;
+            background-color: rgba(2, 136, 209, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px auto;
+            color: var(--primary-blue);
+        }
+
+        /* View Management for SPA feel */
+        .view-section { 
+            display: none; 
+            min-height: 80vh;
+        }
+        .active-section { 
+            display: block; 
+            animation: fadeIn 0.4s ease-in-out; 
+        }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        /* Map Placeholder Style */
+        #gis-map {
+            height: 400px;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            border: 2px solid #ced4da;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div class="alert-ticker">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <marquee behavior="scroll" direction="left">
+            ⚠️ WARNING: High bacterial levels detected in Village East (Zone A). Boil water advisory in effect. | ℹ️ Risk Level: CRITICAL
+        </marquee>
+    </div>
+
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#" onclick="switchView('landing-view')">
+                <i class="fas fa-heartbeat me-2"></i> Smart Health Surveillance
+            </a>
+            <div class="ms-auto">
+                <button class="btn btn-outline-light btn-sm" onclick="switchView('landing-view')">
+                    <i class="fas fa-home"></i> Home
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="landing-view" class="view-section active-section">
+        
+        <section class="py-5 text-center container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <h1 class="display-4 fw-bold text-primary mb-3">Community Health Monitoring</h1>
+                    <p class="lead text-muted mb-5">
+                        A smart early warning system for water-borne diseases in rural areas. Select your role to get started.
+                    </p>
+                </div>
+            </div>
+            
+            <h3 class="text-center mb-4 text-secondary fw-bold">Select Your Role</h3>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-4">
+                    <div class="card hover-card p-4 text-center" onclick="switchView('asha-view')">
+                        <div class="role-icon"><i class="fas fa-user-nurse fa-2x"></i></div>
+                        <h4>ASHA Worker</h4>
+                        <p class="text-muted small">Log symptoms and update water quality data.</p>
+                        <button class="btn btn-outline-primary mt-2">Enter Dashboard</button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card hover-card p-4 text-center" onclick="switchView('official-view')">
+                        <div class="role-icon"><i class="fas fa-user-shield fa-2x"></i></div>
+                        <h4>Health Official</h4>
+                        <p class="text-muted small">Monitor trends, risk zones, and manage alerts.</p>
+                        <button class="btn btn-outline-primary mt-2">View Analytics</button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card hover-card p-4 text-center" onclick="switchView('community-view')">
+                        <div class="role-icon"><i class="fas fa-users fa-2x"></i></div>
+                        <h4>Community Member</h4>
+                        <p class="text-muted small">View local status and access health education.</p>
+                        <button class="btn btn-outline-primary mt-2">Check Status</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <hr class="container">
+
+        <section class="bg-light py-5">
+            <div class="container">
+                <h2 class="text-center fw-bold text-primary mb-5">How It Works</h2>
+                <div class="row g-4 text-center">
+                    <div class="col-md-3">
+                        <div class="card h-100 p-4 border-0 shadow-sm">
+                            <i class="fas fa-clipboard-list fa-3x text-primary mb-3"></i>
+                            <h5>Data Collection</h5>
+                            <p class="small text-muted">ASHA workers collect health & water data.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100 p-4 border-0 shadow-sm">
+                            <i class="fas fa-microchip fa-3x text-warning mb-3"></i>
+                            <h5>Analysis</h5>
+                            <p class="small text-muted">ML algorithms analyze patterns & risks.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100 p-4 border-0 shadow-sm">
+                            <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                            <h5>Alerts</h5>
+                            <p class="small text-muted">Early warnings sent to officials.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100 p-4 border-0 shadow-sm">
+                            <i class="fas fa-hand-holding-medical fa-3x text-success mb-3"></i>
+                            <h5>Action</h5>
+                            <p class="small text-muted">Timely interventions prevent outbreaks.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="container py-5">
+            <h2 class="text-center fw-bold text-primary mb-5">Health Education</h2>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm border-start border-4 border-primary">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-tint text-primary me-2"></i> Water Boiling</h5>
+                            <p class="card-text">Boil water for 10 minutes to eliminate harmful bacteria before consumption.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm border-start border-4 border-success">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-hands-wash text-success me-2"></i> Hygiene</h5>
+                            <p class="card-text">Wash hands regularly with soap to prevent disease transmission.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm border-start border-4 border-danger">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-procedures text-danger me-2"></i> Early Symptoms</h5>
+                            <p class="card-text">Report fever, diarrhea, or vomiting immediately to your local ASHA worker.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="asha-view" class="view-section container py-5">
+        <button class="btn btn-secondary mb-3" onclick="switchView('landing-view')">&larr; Back to Role Selection</button>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-user-nurse"></i> Field Data Entry</h4>
+                        <span class="badge bg-light text-primary">Logged in as: ASHA Worker</span>
+                    </div>
+                    <div class="card-body">
+                        <form id="healthForm">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Date</label>
+                                    <input type="date" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Village</label>
+                                    <select class="form-select">
+                                        <option selected>Select Village...</option>
+                                        <option>Village A (North)</option>
+                                        <option>Village B (South)</option>
+                                        <option>Village East (Zone A)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <hr>
+                            
+                            <h5 class="text-primary mb-3">Reported Symptoms</h5>
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <div class="form-check p-3 border rounded">
+                                        <input class="form-check-input" type="checkbox" id="fever">
+                                        <label class="form-check-label fw-bold" for="fever">Fever</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check p-3 border rounded">
+                                        <input class="form-check-input" type="checkbox" id="vomiting">
+                                        <label class="form-check-label fw-bold" for="vomiting">Vomiting</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check p-3 border rounded">
+                                        <input class="form-check-input" type="checkbox" id="diarrhea">
+                                        <label class="form-check-label fw-bold" for="diarrhea">Diarrhea</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check p-3 border rounded">
+                                        <input class="form-check-input" type="checkbox" id="dehydration">
+                                        <label class="form-check-label fw-bold" for="dehydration">Dehydration</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 p-3 bg-light border rounded">
+                                <h5 class="text-primary">Water Quality Check (IoT/Manual)</h5>
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="small">pH Level</label>
+                                        <input type="number" step="0.1" class="form-control" placeholder="e.g. 7.2">
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="small">Turbidity (NTU)</label>
+                                        <input type="number" class="form-control" placeholder="e.g. 5">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100 mt-4 btn-lg fw-bold">
+                                <i class="fas fa-paper-plane"></i> Submit Report
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="official-view" class="view-section container-fluid py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <button class="btn btn-secondary" onclick="switchView('landing-view')">&larr; Back</button>
+            <h3 class="text-primary fw-bold">Official Analytics Dashboard</h3>
+        </div>
+
+        <div class="row">
+            <div class="col-md-2">
+                <div class="card shadow-sm p-3 mb-3">
+                    <h5 class="card-title text-primary">Controls</h5>
+                    <label class="form-label mt-2 small text-muted">Region</label>
+                    <select class="form-select mb-3"><option>All Districts</option></select>
+                    <label class="form-label small text-muted">Timeframe</label>
+                    <select class="form-select mb-3"><option>Last 7 Days</option></select>
+                    <button class="btn btn-danger w-100 mb-2">Broadcast Alert</button>
+                    <button class="btn btn-dark w-100">Export PDF</button>
+                </div>
+            </div>
+
+            <div class="col-md-7">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white d-flex justify-content-between">
+                        <strong><i class="fas fa-map-marker-alt me-1"></i> Geospatial Risk Map</strong>
+                        <span class="badge bg-danger">2 Critical Zones</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="gis-map">
+                            <div class="text-center text-secondary">
+                                <i class="fas fa-map-marked-alt fa-3x mb-2"></i>
+                                <p>Interactive GIS Map Loaded Here</p>
+                                <small>Visualizing Cluster Outbreaks</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-body">
+                                <h6 class="card-title text-primary">Case Trends (Weekly)</h6>
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-body">
+                                <h6 class="card-title text-primary">Water Turbidity Analysis</h6>
+                                <canvas id="correlationChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-danger text-white">
+                        <i class="fas fa-bell"></i> Live Alerts Log
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1 text-danger fw-bold">Water Quality Critical</h6>
+                                <small>Now</small>
+                            </div>
+                            <p class="mb-1 small">Zone A: Immediate action required. High bacterial count.</p>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action list-group-item-warning">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1 fw-bold">Increased Diarrhea Cases</h6>
+                                <small>2h ago</small>
+                            </div>
+                            <p class="mb-1 small">Village B: Monitor closely. Case count is 15% above baseline.</p>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action list-group-item-success">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1 fw-bold">Water Quality Safe</h6>
+                                <small>4h ago</small>
+                            </div>
+                            <p class="mb-1 small">Zone C: Water Quality within safe limits. Trend improving.</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="community-view" class="view-section container py-5">
+        <button class="btn btn-secondary mb-4" onclick="switchView('landing-view')">&larr; Back to Home</button>
+        
+        <div class="text-center mb-5">
+            <h2 class="text-primary fw-bold">My Community Status & Reporting</h2>
+            <p class="text-muted">Stay informed and report issues in your area.</p>
+        </div>
+
+        <div class="row justify-content-center g-4">
+            <div class="col-md-5">
+                <div class="card text-center border-success shadow h-100">
+                    <div class="card-header bg-success text-white">
+                        <i class="fas fa-tint me-1"></i> Water Safety Status
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <i class="fas fa-check-circle text-success fa-5x mb-3"></i>
+                        <h2 class="text-success">SAFE</h2>
+                        <p class="card-text">Your local water source (Well #2) is tested and safe for consumption. Continue practicing hygiene.</p>
+                        <small class="text-muted">Last updated: Today, 9:00 AM</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="card shadow h-100">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-exclamation-circle me-1"></i> Report an Issue
+                    </div>
+                    <div class="card-body">
+                        <form id="issueReportForm">
+                            <div class="mb-3">
+                                <label class="form-label">What is the problem?</label>
+                                <select class="form-select" required>
+                                    <option selected disabled>Select an Issue...</option>
+                                    <option>Dirty / Muddy Water</option>
+                                    <option>Bad Smell / Taste</option>
+                                    <option>No Water Supply</option>
+                                    <option>Family Member Sick (Gastrointestinal)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description / Location Details</label>
+                                <textarea class="form-control" rows="3" placeholder="Describe the problem and specify the location (e.g., Near the main handpump)."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-dark w-100"><i class="fas fa-share-square"></i> Submit Report to ASHA</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Inline JS for simplicity, as requested
+        // ... (See next section for the JS code) ...
+    // 1. Navigation Logic (Single Page Application - SPA)
+    function switchView(viewId) {
+        // Hide all sections
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-section'));
+        
+        // Show selected section
+        document.getElementById(viewId).classList.add('active-section');
+        
+        // If switching to official view, initialize/re-render charts
+        if(viewId === 'official-view') {
+            // Use a short delay to ensure the container is fully visible before Chart.js calculates size
+            setTimeout(() => {
+                initCharts(); 
+            }, 100);
+        }
+    }
+
+    // 2. Chart Initialization (Using Chart.js)
+    let trendChartInstance = null;
+    let correlationChartInstance = null;
+
+    function initCharts() {
+        // Destroy existing instances if they exist to prevent re-rendering issues
+        if (trendChartInstance) trendChartInstance.destroy();
+        if (correlationChartInstance) correlationChartInstance.destroy();
+        
+        // --- Case Trend Chart (Line Chart) ---
+        const ctx1 = document.getElementById('trendChart').getContext('2d');
+        trendChartInstance = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Cases Reported',
+                    data: [5, 8, 12, 15, 22, 18, 25],
+                    borderColor: '#D32F2F',
+                    backgroundColor: 'rgba(211, 47, 47, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true }
+        });
+
+        // --- Water Turbidity Chart (Bar Chart) ---
+        const ctx2 = document.getElementById('correlationChart').getContext('2d');
+        correlationChartInstance = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: ['Zone A', 'Zone B', 'Zone C'],
+                datasets: [{
+                    label: 'Turbidity (NTU)',
+                    data: [4.5, 2.1, 8.4],
+                    backgroundColor: ['#2E7D32', '#2E7D32', '#D32F2F'], // Green, Green, Red
+                    borderWidth: 1
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // 3. Form Handling (Simple Alert Feedback)
+    document.getElementById('healthForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert("✅ ASHA Report submitted successfully! Analysis starting now.");
+        this.reset();
+        // Optional: switch back to the main view
+        switchView('landing-view');
+    });
+
+    document.getElementById('issueReportForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert("📣 Community Issue successfully reported. An ASHA worker will be notified.");
+        this.reset();
+    });
+
+    // 4. Initial load setup
+    window.onload = function() {
+        // Ensure landing view is active on initial load
+        switchView('landing-view');
+    }
+</script>
+    </script>
+</body>
+</html>
